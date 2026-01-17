@@ -3,186 +3,176 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VoFo Music | Premium</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<title>VoFo Music</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
-:root{ --bg:#050505; --gold:#c5a367; --card:rgba(255,255,255,0.03); --muted:#777; }
-*{box-sizing:border-box;margin:0;padding:0}
-body{ background:var(--bg); color:#fff; font-family:'Inter',sans-serif; min-height:100vh; }
-.hidden{display:none !important;}
+    :root{ --bg:#050505; --gold:#c5a367; --muted:#777; --card:rgba(255,255,255,0.03); }
+    body{ background:var(--bg); color:white; font-family:'Inter', sans-serif; margin:0; overflow:hidden; }
+    .hidden{ display:none !important; }
+    
+    /* Auth */
+    .auth-box{ position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .card{ background:#111; padding:30px; border-radius:12px; border:1px solid #222; width:300px; text-align:center; }
+    input{ width:100%; padding:12px; margin-bottom:10px; background:#000; border:1px solid #333; color:white; border-radius:4px; box-sizing:border-box; }
+    .btn{ width:100%; padding:12px; background:var(--gold); border:none; border-radius:4px; cursor:pointer; font-weight:bold; }
 
-/* Auth Screens */
-.auth-overlay{ position:fixed; inset:0; background:var(--bg); z-index:2000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.auth-card{ background:#111; padding:40px; border-radius:12px; border:1px solid #222; width:90%; max-width:350px; text-align:center; }
-input{ width:100%; padding:14px; margin-bottom:15px; background:#000; border:1px solid #333; color:white; border-radius:4px; outline:none; }
-.btn-gold{ width:100%; padding:14px; background:var(--gold); border:none; font-weight:700; border-radius:4px; cursor:pointer; }
+    /* App */
+    .app-wrap{ display:grid; grid-template-columns:240px 1fr; height:100vh; }
+    .side{ background:#000; padding:30px; border-right:1px solid #222; }
+    .nav-link{ padding:10px; color:var(--muted); cursor:pointer; margin-bottom:10px; }
+    .nav-link.active{ color:var(--gold); font-weight:bold; }
+    
+    .content{ padding:40px; overflow-y:auto; padding-bottom:120px; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:20px; }
+    .song-item{ background:var(--card); padding:10px; border-radius:8px; cursor:pointer; text-align:center; }
+    .song-item img{ width:100%; aspect-ratio:1; border-radius:4px; object-fit:cover; }
 
-/* Main App Layout */
-.app-container{ display:grid; grid-template-columns:250px 1fr; height:100vh; }
-.sidebar{ background:rgba(0,0,0,0.9); border-right:1px solid #222; padding:30px 20px; }
-.nav-item{ padding:12px; margin-bottom:10px; border-radius:6px; cursor:pointer; color:var(--muted); transition:0.3s; }
-.nav-item:hover, .nav-item.active{ background:rgba(197,163,103,0.1); color:var(--gold); }
-
-.main-content{ padding:40px; overflow-y:auto; padding-bottom:120px; }
-.grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:20px; margin-top:20px; }
-.track-card{ background:var(--card); padding:15px; border-radius:10px; cursor:pointer; transition:0.3s; border:1px solid transparent; }
-.track-card:hover{ border-color:var(--gold); transform:translateY(-5px); }
-.track-card img{ width:100%; aspect-ratio:1; border-radius:6px; object-fit:cover; margin-bottom:10px; }
-
-/* Player Bar */
-.player{ position:fixed; bottom:0; width:100%; background:rgba(0,0,0,0.95); backdrop-filter:blur(10px); padding:15px 30px; display:flex; align-items:center; gap:20px; border-top:1px solid #222; z-index:1000; }
-#progress{ flex:1; accent-color:var(--gold); cursor:pointer; }
-
-@media(max-width:768px){ .app-container{ grid-template-columns:1fr; } .sidebar{ display:none; } }
+    /* Player */
+    .player{ position:fixed; bottom:0; width:100%; background:rgba(10,10,10,0.95); padding:15px 30px; display:flex; align-items:center; gap:20px; border-top:1px solid #222; box-sizing:border-box; }
+    #prog{ flex:1; accent-color:var(--gold); }
 </style>
 </head>
 <body>
 
-<div id="regScreen" class="auth-overlay">
-    <h1 style="font-family:'Playfair Display'; color:var(--gold); font-size:3rem; margin-bottom:20px;">VoFo</h1>
-    <div class="auth-card">
-        <h2 style="margin-bottom:20px; font-size:14px; letter-spacing:2px;">CREATE ACCOUNT</h2>
-        <input id="regUser" type="text" placeholder="Username">
-        <input id="regPass" type="password" placeholder="Password">
-        <button class="btn-gold" onclick="auth('register')">REGISTER</button>
-        <p style="font-size:12px; margin-top:15px; color:var(--muted); cursor:pointer;" onclick="showAuth('login')">Already a member? Login</p>
+<div id="authContainer" class="auth-box">
+    <h1 style="font-family:'Playfair Display'; color:var(--gold);">VoFo</h1>
+    <div id="regView" class="card">
+        <input id="rU" placeholder="Username">
+        <input id="rP" type="password" placeholder="Password">
+        <button class="btn" onclick="handleAuth('register')">CREATE ACCOUNT</button>
+        <p style="font-size:12px; cursor:pointer" onclick="toggleV('log')">Login instead</p>
+    </div>
+    <div id="logView" class="card hidden">
+        <input id="lU" placeholder="Username">
+        <input id="lP" type="password" placeholder="Password">
+        <button class="btn" onclick="handleAuth('login')">LOGIN</button>
+        <p style="font-size:12px; cursor:pointer" onclick="toggleV('reg')">Register instead</p>
     </div>
 </div>
 
-<div id="loginScreen" class="auth-overlay hidden">
-    <h1 style="font-family:'Playfair Display'; color:var(--gold); font-size:3rem; margin-bottom:20px;">VoFo</h1>
-    <div class="auth-card">
-        <h2 style="margin-bottom:20px; font-size:14px; letter-spacing:2px;">WELCOME BACK</h2>
-        <input id="logUser" type="text" placeholder="Username">
-        <input id="logPass" type="password" placeholder="Password">
-        <button class="btn-gold" onclick="auth('login')">LOGIN</button>
-        <p style="font-size:12px; margin-top:15px; color:var(--muted); cursor:pointer;" onclick="showAuth('reg')">New here? Register</p>
+<div id="mainApp" class="app-wrap hidden">
+    <div class="side">
+        <h2 style="color:var(--gold)">VoFo</h2>
+        <div class="nav-link active" onclick="setView('search')">EXPLORE</div>
+        <div class="nav-link" onclick="setView('liked')">LIKED</div>
+        <a href="/api/logout" style="color:#444; font-size:12px; text-decoration:none">LOGOUT</a>
     </div>
-</div>
-
-<div id="app" class="app-container hidden">
-    <aside class="sidebar">
-        <h2 style="color:var(--gold); font-family:'Playfair Display'; margin-bottom:40px;">VoFo</h2>
-        <div class="nav-item active" onclick="nav('search')">EXPLORE</div>
-        <div class="nav-item" onclick="nav('liked')">LIKED SONGS</div>
-        <a href="/api/logout" style="text-decoration:none; color:#777; font-size:12px; display:block; margin-top:30px;">LOGOUT</a>
-    </aside>
-
-    <main class="main-content">
-        <div id="searchView">
-            <div style="display:flex; gap:10px;">
-                <input id="searchInput" placeholder="Search artist or track..." style="margin:0; text-align:left; background:var(--card);">
-                <button onclick="searchMusic()" style="background:var(--gold); border:none; padding:0 25px; border-radius:4px; font-weight:bold; cursor:pointer;">SEARCH</button>
+    <div class="content">
+        <div id="searchSection">
+            <div style="display:flex; gap:10px; margin-bottom:30px;">
+                <input id="sq" placeholder="Search tracks..." style="margin:0">
+                <button onclick="doSearch()" class="btn" style="width:auto">SEARCH</button>
             </div>
             <div id="results" class="grid"></div>
         </div>
-
-        <div id="likedView" class="hidden">
-            <h2 style="font-family:'Playfair Display'; color:var(--gold);">Your Collection</h2>
+        <div id="likedSection" class="hidden">
+            <h2>Your Likes</h2>
             <div id="likedGrid" class="grid"></div>
         </div>
-    </main>
+    </div>
 </div>
 
-<div id="player" class="player hidden">
-    <img id="pThumb" src="" style="width:50px; height:50px; border-radius:4px;">
-    <div style="flex:1; min-width:0;">
-        <div id="pTitle" style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:14px;"></div>
-        <input type="range" id="progress" value="0">
+<div id="playerBar" class="player hidden">
+    <img id="pImg" src="" style="width:50px; height:50px">
+    <div style="flex:1">
+        <div id="pTitle" style="font-size:12px; font-weight:bold"></div>
+        <input type="range" id="prog" value="0">
     </div>
-    <div style="display:flex; align-items:center; gap:15px;">
-        <span id="likeBtn" onclick="toggleLike()" style="cursor:pointer; font-size:22px; color:var(--gold);">♡</span>
-        <button id="playBtn" onclick="togglePlay()" style="background:var(--gold); border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">PAUSE</button>
-    </div>
+    <span id="lBtn" onclick="doLike()" style="cursor:pointer; font-size:20px">♡</span>
+    <button id="playBtn" onclick="toggleP()" class="btn" style="width:auto">PAUSE</button>
 </div>
 
 <script>
-let audio = new Audio();
-let currentSong = null;
+    const audio = new Audio();
+    let current = null;
 
-// Initial Check
-fetch('/api/auth/status').then(r=>r.json()).then(d=>{ if(d.logged_in) showApp(); });
+    // View Switching
+    function toggleV(m){
+        regView.classList.toggle('hidden', m==='log');
+        logView.classList.toggle('hidden', m==='reg');
+    }
 
-function showAuth(mode){
-    regScreen.classList.toggle('hidden', mode==='login');
-    loginScreen.classList.toggle('hidden', mode==='reg');
-}
+    function setView(v){
+        searchSection.classList.toggle('hidden', v!=='search');
+        likedSection.classList.toggle('hidden', v!=='liked');
+        if(v==='liked') loadLikes();
+    }
 
-async function auth(type){
-    const u = type==='register'?regUser.value:logUser.value;
-    const p = type==='register'?regPass.value:logPass.value;
-    const res = await fetch(`/api/${type}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({username:u, password:p})
+    // Auth
+    async function handleAuth(type){
+        const u = type==='register' ? rU.value : lU.value;
+        const p = type==='register' ? rP.value : lP.value;
+        const res = await fetch(`/api/${type}`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({username:u, password:p})
+        });
+        const data = await res.json();
+        if(data.success){
+            if(type==='register') toggleV('log');
+            else location.reload();
+        } else alert(data.error);
+    }
+
+    // Load App if Logged In
+    fetch('/api/auth/status').then(r=>r.json()).then(d=>{
+        if(d.logged_in){
+            authContainer.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+        }
     });
-    const data = await res.json();
-    if(data.success){
-        if(type==='register'){ alert("Success! Now Login."); showAuth('login'); }
-        else { showApp(); }
-    } else { alert(data.error); }
-}
 
-function showApp(){
-    regScreen.classList.add('hidden'); loginScreen.classList.add('hidden');
-    app.classList.remove('hidden');
-}
+    // Music
+    async function doSearch(){
+        const res = await fetch(`/api/search?q=${encodeURIComponent(sq.value)}`);
+        const data = await res.json();
+        results.innerHTML = data.map(s => `
+            <div class="song-item" onclick='play(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
+                <img src="${s.thumbnail || ''}">
+                <div style="font-size:12px; margin-top:5px">${s.title}</div>
+            </div>
+        `).join('');
+    }
 
-function nav(view){
-    searchView.classList.toggle('hidden', view!=='search');
-    likedView.classList.toggle('hidden', view!=='liked');
-    document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-    event.target.classList.add('active');
-    if(view==='liked') loadLiked();
-}
+    async function play(s){
+        current = s;
+        playerBar.classList.remove('hidden');
+        pImg.src = s.thumbnail; pTitle.innerText = s.title;
+        const res = await fetch('/api/play', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({url:s.id})
+        });
+        const d = await res.json();
+        audio.src = d.stream_url; audio.play();
+        playBtn.innerText = "PAUSE";
+    }
 
-async function searchMusic(){
-    const q = searchInput.value; if(!q) return;
-    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-    const data = await res.json();
-    results.innerHTML = data.map(s => `
-        <div class="track-card" onclick='playSong(${JSON.stringify(s)})'>
-            <img src="${s.thumbnail || 'https://via.placeholder.com/150'}">
-            <div style="font-weight:600; font-size:13px;">${s.title}</div>
-            <div style="color:var(--muted); font-size:11px;">${s.artist}</div>
-        </div>
-    `).join('');
-}
+    async function doLike(){
+        const res = await fetch('/api/like', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(current)
+        });
+        const d = await res.json();
+        lBtn.innerText = d.status === 'liked' ? '♥' : '♡';
+    }
 
-async function playSong(s){
-    currentSong = s;
-    player.classList.remove('hidden');
-    pThumb.src = s.thumbnail; pTitle.innerText = s.title;
-    const res = await fetch('/api/play',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:s.id})});
-    const d = await res.json();
-    audio.src = d.stream_url; audio.play();
-    playBtn.innerText = "PAUSE";
-    likeBtn.innerText = "♡";
-}
+    async function loadLikes(){
+        const res = await fetch('/api/library');
+        const data = await res.json();
+        likedGrid.innerHTML = data.map(s => `
+            <div class="song-item" onclick='play(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
+                <img src="${s.thumbnail || ''}">
+                <div style="font-size:12px">${s.title}</div>
+            </div>
+        `).join('');
+    }
 
-async function toggleLike(){
-    const res = await fetch('/api/like',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(currentSong)});
-    const d = await res.json();
-    likeBtn.innerText = d.status === 'liked' ? '♥' : '♡';
-}
+    function toggleP(){
+        if(audio.paused){ audio.play(); playBtn.innerText="PAUSE"; }
+        else { audio.pause(); playBtn.innerText="PLAY"; }
+    }
 
-async function loadLiked(){
-    const res = await fetch('/api/library');
-    const data = await res.json();
-    likedGrid.innerHTML = data.map(s => `
-        <div class="track-card" onclick='playSong(${JSON.stringify(s)})'>
-            <img src="${s.thumbnail || 'https://via.placeholder.com/150'}">
-            <div style="font-weight:600; font-size:13px;">${s.title}</div>
-        </div>
-    `).join('');
-}
-
-function togglePlay(){
-    if(audio.paused){ audio.play(); playBtn.innerText="PAUSE"; }
-    else{ audio.pause(); playBtn.innerText="PLAY"; }
-}
-
-audio.ontimeupdate = () => { if(audio.duration) progress.value = (audio.currentTime/audio.duration)*100; };
-progress.oninput = () => { audio.currentTime = (progress.value/100)*audio.duration; };
+    audio.ontimeupdate = () => { if(audio.duration) prog.value = (audio.currentTime/audio.duration)*100; };
+    prog.oninput = () => { audio.currentTime = (prog.value/100)*audio.duration; };
 </script>
 </body>
 </html>
