@@ -8,8 +8,8 @@ from yt_dlp import YoutubeDL
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
-# --- DATABASE CONFIGURATION FIX ---
-# Render provides 'postgres://', but SQLAlchemy requires 'postgresql://'
+# --- DATABASE CONFIGURATION ---
+# Fix for Render: SQLAlchemy requires 'postgresql://' but Render gives 'postgres://'
 database_url = os.environ.get('DATABASE_URL')
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -20,11 +20,10 @@ app.config.update(
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True  # Important for HTTPS on Render
+    SESSION_COOKIE_SECURE=True 
 )
 
 CORS(app, supports_credentials=True)
-
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'index'
@@ -33,7 +32,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 }
 
-# --- Database Models ---
+# --- Models ---
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -60,8 +59,6 @@ def index():
 @app.route("/api/auth/register", methods=["POST"])
 def register():
     data = request.json
-    if not data or 'username' not in data or 'password' not in data:
-        return jsonify({"error": "Missing credentials"}), 400
     if User.query.filter_by(username=data['username']).first():
         return jsonify({"error": "User already exists"}), 400
     hashed_pw = generate_password_hash(data['password'], method='pbkdf2:sha256')
@@ -86,9 +83,7 @@ def logout():
 
 @app.route("/api/auth/status")
 def status():
-    if current_user.is_authenticated:
-        return jsonify({"logged_in": True, "username": current_user.username})
-    return jsonify({"logged_in": False})
+    return jsonify({"logged_in": current_user.is_authenticated, "username": getattr(current_user, 'username', None)})
 
 @app.route("/api/search")
 @login_required
@@ -115,16 +110,17 @@ def play():
     track_url = request.json.get("url")
     try:
         ydl_opts = {
-            "format": "bestaudio", 
+            "format": "bestaudio/best", 
             "quiet": True, 
             "http_headers": HEADERS,
-            "nocheckcertificate": True
+            "nocheckcertificate": True,
+            "cachedir": False # Ensure fresh stream URL
         }
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(track_url, download=False)
             return jsonify({
                 "stream_url": info["url"],
-                "is_hls": ".m3u8" in info["url"] or info.get("protocol") == "m3u8_native"
+                "is_hls": ".m3u8" in info["url"] or info.get("protocol") in ["m3u8_native", "m3u8"]
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -149,7 +145,6 @@ def toggle_like():
     db.session.commit()
     return jsonify({"status": "liked"})
 
-# Create DB tables automatically
 with app.app_context():
     db.create_all()
 
