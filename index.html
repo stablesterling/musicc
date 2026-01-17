@@ -1,178 +1,242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VoFo Music</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-<style>
-    :root{ --bg:#050505; --gold:#c5a367; --muted:#777; --card:rgba(255,255,255,0.03); }
-    body{ background:var(--bg); color:white; font-family:'Inter', sans-serif; margin:0; overflow:hidden; }
-    .hidden{ display:none !important; }
-    
-    /* Auth */
-    .auth-box{ position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    .card{ background:#111; padding:30px; border-radius:12px; border:1px solid #222; width:300px; text-align:center; }
-    input{ width:100%; padding:12px; margin-bottom:10px; background:#000; border:1px solid #333; color:white; border-radius:4px; box-sizing:border-box; }
-    .btn{ width:100%; padding:12px; background:var(--gold); border:none; border-radius:4px; cursor:pointer; font-weight:bold; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoFo Music | Private Listening</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        :root { --bg: #0a0a0a; --gold: #c5a367; --soft: #f8f8f8; --muted: #777; --card-bg: rgba(255, 255, 255, 0.03); }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: radial-gradient(circle at 50% 40%, #1c1c1c 0%, #0a0a0a 100%); color: var(--soft); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+        
+        .hidden { display: none !important; }
 
-    /* App */
-    .app-wrap{ display:grid; grid-template-columns:240px 1fr; height:100vh; }
-    .side{ background:#000; padding:30px; border-right:1px solid #222; }
-    .nav-link{ padding:10px; color:var(--muted); cursor:pointer; margin-bottom:10px; }
-    .nav-link.active{ color:var(--gold); font-weight:bold; }
-    
-    .content{ padding:40px; overflow-y:auto; padding-bottom:120px; }
-    .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:20px; }
-    .song-item{ background:var(--card); padding:10px; border-radius:8px; cursor:pointer; text-align:center; }
-    .song-item img{ width:100%; aspect-ratio:1; border-radius:4px; object-fit:cover; }
+        /* Auth UI */
+        .auth-container { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; justify-content: center; align-items: center; }
+        .auth-card { background: #111; padding: 40px; border-radius: 8px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #222; }
+        .auth-card h2 { font-family: 'Playfair Display'; margin-bottom: 20px; color: var(--gold); }
+        .auth-card input { width: 100%; padding: 15px; margin-bottom: 10px; background: #000; border: 1px solid #333; color: white; border-radius: 4px; }
+        .auth-card button { width: 100%; padding: 15px; background: var(--gold); border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        .switch-auth { font-size: 12px; margin-top: 15px; color: var(--muted); cursor: pointer; text-decoration: underline; }
 
-    /* Player */
-    .player{ position:fixed; bottom:0; width:100%; background:rgba(10,10,10,0.95); padding:15px 30px; display:flex; align-items:center; gap:20px; border-top:1px solid #222; box-sizing:border-box; }
-    #prog{ flex:1; accent-color:var(--gold); }
-</style>
+        /* App UI */
+        .nav-bar { padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .nav-links { display: flex; gap: 20px; }
+        .nav-links span { font-size: 12px; letter-spacing: 2px; cursor: pointer; color: var(--muted); transition: 0.3s; }
+        .nav-links span:hover, .nav-links span.active { color: var(--gold); }
+
+        .hero { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px; }
+        .est { font-size: 12px; letter-spacing: .4em; text-transform: uppercase; color: var(--gold); margin-bottom: 20px; font-weight: 600; }
+        h1 { font-family: 'Playfair Display', serif; font-size: clamp(3rem, 8vw, 5rem); color: #fff; margin-bottom: 10px; }
+        .search-box { width: 100%; max-width: 500px; }
+        .search-box input { width: 100%; padding: 20px; text-align: center; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 4px; margin-bottom: 15px; }
+        .search-box button { width: 100%; padding: 18px; background: var(--gold); border: none; font-weight: 700; cursor: pointer; border-radius: 4px; }
+
+        .container { width: 100%; max-width: 700px; margin: auto; padding-bottom: 150px; }
+        .track { padding: 15px; display: flex; align-items: center; gap: 20px; border-radius: 8px; background: var(--card-bg); cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
+        .track:hover { transform: translateX(10px); background: rgba(197, 163, 103, 0.08); }
+        .track img { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
+        .track-meta div:first-child { font-weight: 600; font-size: 14px; }
+        .track-meta div:last-child { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+
+        .player { position: fixed; bottom: 0; width: 100%; background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); padding: 20px 40px; display: flex; align-items: center; gap: 30px; border-top: 1px solid rgba(197,163,103,0.2); z-index: 1000; }
+        #progress { flex: 1; accent-color: var(--gold); height: 3px; cursor: pointer; }
+        .like-btn { cursor: pointer; font-size: 20px; transition: 0.3s; color: var(--muted); }
+        .like-btn.active { color: #ff4b2b; transform: scale(1.1); }
+    </style>
 </head>
 <body>
 
-<div id="authContainer" class="auth-box">
-    <h1 style="font-family:'Playfair Display'; color:var(--gold);">VoFo</h1>
-    <div id="regView" class="card">
-        <input id="rU" placeholder="Username">
-        <input id="rP" type="password" placeholder="Password">
-        <button class="btn" onclick="handleAuth('register')">CREATE ACCOUNT</button>
-        <p style="font-size:12px; cursor:pointer" onclick="toggleV('log')">Login instead</p>
+<div id="authScreen" class="auth-container">
+    <div id="loginForm" class="auth-card">
+        <h2>VoFo Login</h2>
+        <input type="text" id="lUser" placeholder="Username">
+        <input type="password" id="lPass" placeholder="Password">
+        <button onclick="auth('login')">ENTER</button>
+        <p class="switch-auth" onclick="toggleAuth()">Need an account? Register</p>
     </div>
-    <div id="logView" class="card hidden">
-        <input id="lU" placeholder="Username">
-        <input id="lP" type="password" placeholder="Password">
-        <button class="btn" onclick="handleAuth('login')">LOGIN</button>
-        <p style="font-size:12px; cursor:pointer" onclick="toggleV('reg')">Register instead</p>
+    <div id="registerForm" class="auth-card hidden">
+        <h2>Create Account</h2>
+        <input type="text" id="rUser" placeholder="Choose Username">
+        <input type="password" id="rPass" placeholder="Password">
+        <button onclick="auth('register')">CREATE</button>
+        <p class="switch-auth" onclick="toggleAuth()">Already a member? Login</p>
     </div>
 </div>
 
-<div id="mainApp" class="app-wrap hidden">
-    <div class="side">
-        <h2 style="color:var(--gold)">VoFo</h2>
-        <div class="nav-link active" onclick="setView('search')">EXPLORE</div>
-        <div class="nav-link" onclick="setView('liked')">LIKED</div>
-        <a href="/api/logout" style="color:#444; font-size:12px; text-decoration:none">LOGOUT</a>
+<div id="app" class="hidden">
+    <nav class="nav-bar">
+        <div style="font-family:'Playfair Display'; color:var(--gold); font-size: 1.5rem;">VoFo</div>
+        <div class="nav-links">
+            <span id="navExplore" class="active" onclick="switchTab('explore')">EXPLORE</span>
+            <span id="navLibrary" onclick="switchTab('library')">LIBRARY</span>
+            <span onclick="logout()">LOGOUT</span>
+        </div>
+    </nav>
+
+    <div id="exploreTab" class="hero">
+        <div class="est">PRIVATE MUSIC PLATFORM</div>
+        <h1>Discovery</h1>
+        <div class="search-box">
+            <input id="searchInput" placeholder="Search artist or track..." autocomplete="off">
+            <button id="searchBtn" onclick="doSearch()">EXPLORE</button>
+        </div>
+        <div id="results" class="container" style="margin-top: 40px;"></div>
     </div>
-    <div class="content">
-        <div id="searchSection">
-            <div style="display:flex; gap:10px; margin-bottom:30px;">
-                <input id="sq" placeholder="Search tracks..." style="margin:0">
-                <button onclick="doSearch()" class="btn" style="width:auto">SEARCH</button>
+
+    <div id="libraryTab" class="hero hidden">
+        <div class="est">YOUR COLLECTION</div>
+        <h1>Library</h1>
+        <div id="libraryResults" class="container" style="margin-top: 40px;"></div>
+    </div>
+</div>
+
+<div class="player hidden" id="player">
+    <img id="pThumb" style="width:55px; height:55px; border-radius:4px;">
+    <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div id="pTitle" style="font-weight:600; font-size:14px;"></div>
+                <div id="pArtist" style="font-size:10px; color:var(--muted); text-transform:uppercase;"></div>
             </div>
-            <div id="results" class="grid"></div>
+            <div id="likeBtn" class="like-btn" onclick="toggleLike()">❤</div>
         </div>
-        <div id="likedSection" class="hidden">
-            <h2>Your Likes</h2>
-            <div id="likedGrid" class="grid"></div>
-        </div>
+        <input type="range" id="progress" value="0" min="0" max="100" step="0.1">
     </div>
-</div>
-
-<div id="playerBar" class="player hidden">
-    <img id="pImg" src="" style="width:50px; height:50px">
-    <div style="flex:1">
-        <div id="pTitle" style="font-size:12px; font-weight:bold"></div>
-        <input type="range" id="prog" value="0">
-    </div>
-    <span id="lBtn" onclick="doLike()" style="cursor:pointer; font-size:20px">♡</span>
-    <button id="playBtn" onclick="toggleP()" class="btn" style="width:auto">PAUSE</button>
+    <button id="playBtn" style="background:var(--gold); border:none; padding:10px 25px; border-radius:4px; font-weight:800; cursor:pointer;">PAUSE</button>
 </div>
 
 <script>
     const audio = new Audio();
-    let current = null;
+    let currentTrack = null;
+    let likedTrackIds = new Set();
 
-    // View Switching
-    function toggleV(m){
-        regView.classList.toggle('hidden', m==='log');
-        logView.classList.toggle('hidden', m==='reg');
+    // --- Authentication ---
+    function toggleAuth() {
+        document.getElementById('loginForm').classList.toggle('hidden');
+        document.getElementById('registerForm').classList.toggle('hidden');
     }
 
-    function setView(v){
-        searchSection.classList.toggle('hidden', v!=='search');
-        likedSection.classList.toggle('hidden', v!=='liked');
-        if(v==='liked') loadLikes();
-    }
-
-    // Auth
-    async function handleAuth(type){
-        const u = type==='register' ? rU.value : lU.value;
-        const p = type==='register' ? rP.value : lP.value;
-        const res = await fetch(`/api/${type}`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({username:u, password:p})
+    async function auth(type) {
+        const u = document.getElementById(type === 'login' ? 'lUser' : 'rUser').value;
+        const p = document.getElementById(type === 'login' ? 'lPass' : 'rPass').value;
+        const res = await fetch(`/api/auth/${type}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: u, password: p})
         });
         const data = await res.json();
-        if(data.success){
-            if(type==='register') toggleV('log');
-            else location.reload();
-        } else alert(data.error);
+        if(data.success) {
+            if(type === 'register') { alert('Registered! Please login.'); toggleAuth(); }
+            else { checkStatus(); }
+        } else { alert(data.error); }
     }
 
-    // Load App if Logged In
-    fetch('/api/auth/status').then(r=>r.json()).then(d=>{
-        if(d.logged_in){
-            authContainer.classList.add('hidden');
-            mainApp.classList.remove('hidden');
+    async function checkStatus() {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+        if(data.logged_in) {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            fetchLibraryIds();
         }
-    });
+    }
 
-    // Music
-    async function doSearch(){
-        const res = await fetch(`/api/search?q=${encodeURIComponent(sq.value)}`);
+    async function logout() {
+        await fetch('/api/auth/logout');
+        location.reload();
+    }
+
+    // --- Tab Management ---
+    function switchTab(tab) {
+        document.getElementById('exploreTab').classList.toggle('hidden', tab !== 'explore');
+        document.getElementById('libraryTab').classList.toggle('hidden', tab !== 'library');
+        document.getElementById('navExplore').classList.toggle('active', tab === 'explore');
+        document.getElementById('navLibrary').classList.toggle('active', tab === 'library');
+        if(tab === 'library') loadLibrary();
+    }
+
+    // --- Music Logic ---
+    async function doSearch() {
+        const q = searchInput.value;
+        if(!q) return;
+        searchBtn.innerText = "DIGGING...";
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         const data = await res.json();
-        results.innerHTML = data.map(s => `
-            <div class="song-item" onclick='play(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
-                <img src="${s.thumbnail || ''}">
-                <div style="font-size:12px; margin-top:5px">${s.title}</div>
-            </div>
-        `).join('');
+        renderTracks(data, 'results');
+        searchBtn.innerText = "EXPLORE";
     }
 
-    async function play(s){
-        current = s;
-        playerBar.classList.remove('hidden');
-        pImg.src = s.thumbnail; pTitle.innerText = s.title;
+    function renderTracks(tracks, divId) {
+        const div = document.getElementById(divId);
+        div.innerHTML = "";
+        tracks.forEach(s => {
+            const t = document.createElement('div');
+            t.className = 'track';
+            t.innerHTML = `<img src="${s.thumbnail}"><div class="track-meta"><div>${s.title}</div><div>${s.artist}</div></div>`;
+            t.onclick = () => playSong(s);
+            div.appendChild(t);
+        });
+    }
+
+    async function playSong(song) {
+        currentTrack = song;
+        player.classList.remove('hidden');
+        pTitle.innerText = song.title; pArtist.innerText = song.artist; pThumb.src = song.thumbnail;
+        
         const res = await fetch('/api/play', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({url:s.id})
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: song.id})
         });
-        const d = await res.json();
-        audio.src = d.stream_url; audio.play();
+        const data = await res.json();
+        audio.src = data.stream_url;
+        audio.play();
         playBtn.innerText = "PAUSE";
+        updateLikeBtnUI();
     }
 
-    async function doLike(){
-        const res = await fetch('/api/like', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify(current)
-        });
-        const d = await res.json();
-        lBtn.innerText = d.status === 'liked' ? '♥' : '♡';
-    }
-
-    async function loadLikes(){
+    // --- Library & Likes ---
+    async function fetchLibraryIds() {
         const res = await fetch('/api/library');
         const data = await res.json();
-        likedGrid.innerHTML = data.map(s => `
-            <div class="song-item" onclick='play(${JSON.stringify(s).replace(/'/g, "&apos;")})'>
-                <img src="${s.thumbnail || ''}">
-                <div style="font-size:12px">${s.title}</div>
-            </div>
-        `).join('');
+        likedTrackIds = new Set(data.map(t => t.id));
     }
 
-    function toggleP(){
-        if(audio.paused){ audio.play(); playBtn.innerText="PAUSE"; }
-        else { audio.pause(); playBtn.innerText="PLAY"; }
+    async function loadLibrary() {
+        const res = await fetch('/api/library');
+        const data = await res.json();
+        renderTracks(data, 'libraryResults');
     }
 
-    audio.ontimeupdate = () => { if(audio.duration) prog.value = (audio.currentTime/audio.duration)*100; };
-    prog.oninput = () => { audio.currentTime = (prog.value/100)*audio.duration; };
+    async function toggleLike() {
+        if(!currentTrack) return;
+        const res = await fetch('/api/like', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(currentTrack)
+        });
+        const data = await res.json();
+        if(data.status === 'liked') likedTrackIds.add(currentTrack.id);
+        else likedTrackIds.delete(currentTrack.id);
+        updateLikeBtnUI();
+    }
+
+    function updateLikeBtnUI() {
+        likeBtn.classList.toggle('active', likedTrackIds.has(currentTrack.id));
+    }
+
+    // --- Audio Controls ---
+    playBtn.onclick = () => {
+        if(audio.paused) { audio.play(); playBtn.innerText = "PAUSE"; }
+        else { audio.pause(); playBtn.innerText = "PLAY"; }
+    };
+    audio.ontimeupdate = () => { if(audio.duration) progress.value = (audio.currentTime/audio.duration)*100; };
+    progress.oninput = () => { if(audio.duration) audio.currentTime = (progress.value/100)*audio.duration; };
+
+    checkStatus();
 </script>
 </body>
 </html>
