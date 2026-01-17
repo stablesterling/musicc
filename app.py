@@ -9,7 +9,6 @@ from yt_dlp import YoutubeDL
 app = Flask(__name__, static_folder=".", static_url_path="")
 
 # --- DATABASE CONFIGURATION ---
-# Fix for Render: SQLAlchemy requires 'postgresql://' but Render gives 'postgres://'
 database_url = os.environ.get('DATABASE_URL')
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -20,7 +19,7 @@ app.config.update(
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True 
+    SESSION_COOKIE_SECURE=True if os.environ.get('DATABASE_URL') else False
 )
 
 CORS(app, supports_credentials=True)
@@ -51,7 +50,6 @@ class LikedTrack(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- Routes ---
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
@@ -83,7 +81,9 @@ def logout():
 
 @app.route("/api/auth/status")
 def status():
-    return jsonify({"logged_in": current_user.is_authenticated, "username": getattr(current_user, 'username', None)})
+    if current_user.is_authenticated:
+        return jsonify({"logged_in": True, "username": current_user.username})
+    return jsonify({"logged_in": False})
 
 @app.route("/api/search")
 @login_required
@@ -101,26 +101,28 @@ def search():
                 "thumbnail": e.get("thumbnail") or "https://placehold.co/50x50"
             } for e in r.get("entries", []) if e]
             return jsonify(results)
-    except Exception:
-        return jsonify([])
+    except: return jsonify([])
 
 @app.route("/api/play", methods=["POST"])
 @login_required
 def play():
     track_url = request.json.get("url")
     try:
+        # Improved opts to force high compatibility audio streams
         ydl_opts = {
-            "format": "bestaudio/best", 
-            "quiet": True, 
+            "format": "bestaudio/best",
+            "quiet": True,
             "http_headers": HEADERS,
             "nocheckcertificate": True,
-            "cachedir": False # Ensure fresh stream URL
+            "cachedir": False
         }
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(track_url, download=False)
+            # Check for both standard HLS protocols and m3u8 extensions
+            is_hls = info.get('protocol') in ['m3u8', 'm3u8_native'] or ".m3u8" in info["url"]
             return jsonify({
                 "stream_url": info["url"],
-                "is_hls": ".m3u8" in info["url"] or info.get("protocol") in ["m3u8_native", "m3u8"]
+                "is_hls": is_hls
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -145,9 +147,8 @@ def toggle_like():
     db.session.commit()
     return jsonify({"status": "liked"})
 
-with app.app_context():
-    db.create_all()
-
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
