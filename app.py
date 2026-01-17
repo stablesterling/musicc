@@ -8,14 +8,19 @@ from yt_dlp import YoutubeDL
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 
-# --- CONFIGURATION ---
+# --- DATABASE CONFIGURATION FIX ---
+# Render provides 'postgres://', but SQLAlchemy requires 'postgresql://'
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 app.config.update(
     SECRET_KEY=os.environ.get('SECRET_KEY', 'vofo_ultra_secret_2026'),
-    SQLALCHEMY_DATABASE_URI='sqlite:///vofo.db',
+    SQLALCHEMY_DATABASE_URI=database_url or 'sqlite:///vofo.db',
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True 
+    SESSION_COOKIE_SECURE=True  # Important for HTTPS on Render
 )
 
 CORS(app, supports_credentials=True)
@@ -55,6 +60,8 @@ def index():
 @app.route("/api/auth/register", methods=["POST"])
 def register():
     data = request.json
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify({"error": "Missing credentials"}), 400
     if User.query.filter_by(username=data['username']).first():
         return jsonify({"error": "User already exists"}), 400
     hashed_pw = generate_password_hash(data['password'], method='pbkdf2:sha256')
@@ -99,7 +106,7 @@ def search():
                 "thumbnail": e.get("thumbnail") or "https://placehold.co/50x50"
             } for e in r.get("entries", []) if e]
             return jsonify(results)
-    except Exception as e:
+    except Exception:
         return jsonify([])
 
 @app.route("/api/play", methods=["POST"])
@@ -142,7 +149,7 @@ def toggle_like():
     db.session.commit()
     return jsonify({"status": "liked"})
 
-# Create DB tables
+# Create DB tables automatically
 with app.app_context():
     db.create_all()
 
