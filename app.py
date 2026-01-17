@@ -6,12 +6,12 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from yt_dlp import YoutubeDL
 
-# Initialize Flask with template folder at root
+# Initialize Flask
 app = Flask(__name__, template_folder=".", static_folder=".", static_url_path="")
 CORS(app)
 
-# --- Configuration ---
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "vofo_private_key_2026")
+# --- Database Configuration ---
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "vofo_secret_123")
 db_url = os.environ.get("DATABASE_URL", "sqlite:///vofo.db")
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -45,40 +45,12 @@ class LikedSong(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# --- Core Logic ---
-def soundcloud_search(query):
-    try:
-        ydl_opts = {"quiet": True, "noplaylist": True, "extract_flat": True, "http_headers": HEADERS}
-        with YoutubeDL(ydl_opts) as ydl:
-            r = ydl.extract_info(f"scsearch10:{query}", download=False)
-            results = []
-            for e in r.get("entries", []):
-                if not e: continue
-                results.append({
-                    "id": e.get("url"),
-                    "title": e.get("title"),
-                    "artist": e.get("uploader") or "SoundCloud Artist",
-                    "thumbnail": e.get("thumbnail") or "https://placehold.co/100x100?text=VoFo"
-                })
-            return results
-    except: return []
-
-# --- Routes ---
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/api/auth/status")
-def auth_status():
-    if current_user.is_authenticated:
-        return jsonify({"logged_in": True, "user": current_user.username})
-    return jsonify({"logged_in": False})
-
+# --- Auth Routes ---
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.json
     if User.query.filter_by(username=data['username']).first():
-        return jsonify({"error": "User already exists"}), 400
+        return jsonify({"error": "Username already exists"}), 400
     hashed_pw = generate_password_hash(data['password'], method='pbkdf2:sha256')
     new_user = User(username=data['username'], password=hashed_pw)
     db.session.add(new_user)
@@ -99,11 +71,32 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+@app.route("/api/auth/status")
+def auth_status():
+    if current_user.is_authenticated:
+        return jsonify({"logged_in": True, "user": current_user.username})
+    return jsonify({"logged_in": False})
+
+# --- Music Routes ---
 @app.route("/api/search")
 @login_required
 def search():
     q = request.args.get("q")
-    return jsonify(soundcloud_search(q)) if q else jsonify([])
+    try:
+        ydl_opts = {"quiet": True, "noplaylist": True, "extract_flat": True, "http_headers": HEADERS}
+        with YoutubeDL(ydl_opts) as ydl:
+            r = ydl.extract_info(f"scsearch10:{q}", download=False)
+            results = []
+            for e in r.get("entries", []):
+                if not e: continue
+                results.append({
+                    "id": e.get("url"),
+                    "title": e.get("title"),
+                    "artist": e.get("uploader") or "SoundCloud Artist",
+                    "thumbnail": e.get("thumbnail") or ""
+                })
+            return jsonify(results)
+    except: return jsonify([])
 
 @app.route("/api/play", methods=["POST"])
 @login_required
@@ -113,10 +106,11 @@ def play():
         ydl_opts = {"format": "bestaudio", "quiet": True, "http_headers": HEADERS}
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(track_url, download=False)
-            return jsonify({"stream_url": info["url"], "ext": info.get("ext", "")})
+            return jsonify({"stream_url": info["url"]})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# --- Likes Logic ---
 @app.route("/api/like", methods=["POST"])
 @login_required
 def toggle_like():
@@ -126,7 +120,14 @@ def toggle_like():
         db.session.delete(existing)
         db.session.commit()
         return jsonify({"status": "unliked"})
-    new_like = LikedSong(user_id=current_user.id, track_url=data['id'], title=data['title'], artist=data['artist'], thumbnail=data['thumbnail'])
+    
+    new_like = LikedSong(
+        user_id=current_user.id, 
+        track_url=data['id'], 
+        title=data['title'], 
+        artist=data['artist'], 
+        thumbnail=data['thumbnail']
+    )
     db.session.add(new_like)
     db.session.commit()
     return jsonify({"status": "liked"})
@@ -135,7 +136,16 @@ def toggle_like():
 @login_required
 def get_library():
     songs = LikedSong.query.filter_by(user_id=current_user.id).all()
-    return jsonify([{'id': s.track_url, 'title': s.title, 'artist': s.artist, 'thumbnail': s.thumbnail} for s in songs])
+    return jsonify([{
+        "id": s.track_url, 
+        "title": s.title, 
+        "artist": s.artist, 
+        "thumbnail": s.thumbnail
+    } for s in songs])
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 if __name__ == "__main__":
     with app.app_context():
