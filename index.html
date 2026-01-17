@@ -55,11 +55,13 @@
         .nav-links span { font-size: 11px; letter-spacing: 2.5px; cursor: pointer; color: var(--muted); margin-left: 30px; transition: 0.3s; font-weight: 500; text-transform: uppercase; }
         .nav-links span.active, .nav-links span:hover { color: var(--gold); }
 
+        /* Auth Styles */
         .auth-container { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .auth-card { background: #111; padding: 50px 40px; border-radius: 4px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #1a1a1a; }
         .auth-card input { width: 100%; padding: 15px; margin-bottom: 12px; background: #000; border: 1px solid #222; color: white; outline: none; font-family: var(--sans); }
         .auth-btn { width: 100%; padding: 16px; background: var(--gold); border: none; font-weight: 600; cursor: pointer; color: #000; letter-spacing: 2px; transition: 0.4s; font-family: var(--sans); text-transform: uppercase; }
 
+        /* Layout */
         .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 80px 20px 40px; }
         .tagline { font-size: 11px; letter-spacing: 5px; color: var(--muted); text-transform: uppercase; margin-top: 10px; }
         
@@ -82,60 +84,24 @@
         .track-meta div:first-child { font-weight: 500; font-family: var(--serif); font-size: 19px; }
         .track-meta div:last-child { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
 
-        footer {
-            width: 100%;
-            max-width: 1000px;
-            margin: 80px auto 0;
-            padding: 60px 40px 180px; 
-            border-top: 1px solid rgba(197, 163, 103, 0.1);
-            display: grid;
-            grid-template-columns: 1.5fr 1fr 1fr;
-            gap: 40px;
-        }
+        /* Footer */
+        footer { width: 100%; max-width: 1000px; margin: 80px auto 0; padding: 60px 40px 180px; border-top: 1px solid rgba(197, 163, 103, 0.1); display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 40px; }
         .footer-brand h3 { color: var(--gold); font-size: 24px; margin-bottom: 15px; }
         .footer-brand p { font-size: 13px; line-height: 1.8; color: var(--muted); max-width: 320px; }
         .footer-col h4 { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--soft); margin-bottom: 20px; }
         .footer-col ul { list-style: none; }
         .footer-col ul li { font-size: 12px; color: var(--muted); margin-bottom: 12px; cursor: pointer; transition: 0.3s; }
         .footer-col ul li:hover { color: var(--gold); }
+        .bottom-bar { grid-column: 1 / -1; text-align: center; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.03); font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
 
-        .bottom-bar {
-            grid-column: 1 / -1;
-            text-align: center;
-            padding-top: 40px;
-            border-top: 1px solid rgba(255,255,255,0.03);
-            font-size: 10px;
-            letter-spacing: 2px;
-            color: var(--muted);
-            text-transform: uppercase;
-        }
+        .glow-text { color: var(--gold); display: inline-block; transition: 0.5s; text-shadow: 0 0 5px rgba(197, 163, 103, 0.2); cursor: default; }
+        .glow-text:hover { text-shadow: 0 0 15px rgba(197, 163, 103, 0.8); transform: translateY(-2px); }
 
-        .glow-text {
-            color: var(--gold);
-            display: inline-block;
-            transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            text-shadow: 0 0 5px rgba(197, 163, 103, 0.2);
-            cursor: default;
-        }
-        .glow-text:hover {
-            text-shadow: 0 0 15px rgba(197, 163, 103, 0.8);
-            transform: translateY(-2px);
-            letter-spacing: 4px;
-        }
-
-        .player { 
-            position: fixed; bottom: 0; width: 100%; 
-            background: rgba(0,0,0,0.95); backdrop-filter: blur(10px);
-            padding: 25px 60px; display: flex; align-items: center; gap: 40px; 
-            border-top: 1px solid #111; z-index: 1000; 
-        }
+        /* Player Bar */
+        .player { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); padding: 25px 60px; display: flex; align-items: center; gap: 40px; border-top: 1px solid #111; z-index: 1000; }
         .player-controls { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         #progress { width: 100%; accent-color: var(--gold); cursor: pointer; height: 2px; }
-        .play-btn { 
-            background: transparent; border: 1px solid var(--gold); color: var(--gold); 
-            padding: 10px 30px; letter-spacing: 2px; font-weight: 500; cursor: pointer; 
-            font-family: var(--sans); font-size: 11px; transition: 0.3s;
-        }
+        .play-btn { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 10px 30px; letter-spacing: 2px; font-weight: 500; cursor: pointer; font-family: var(--sans); font-size: 11px; transition: 0.3s; }
         .play-btn:hover { background: var(--gold); color: #000; }
 
         .loader { width: 24px; height: 24px; border: 2px solid rgba(197, 163, 103, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 15px auto; }
@@ -221,7 +187,7 @@
                 <div id="pTitle" style="font-family: var(--serif); font-size: 20px;"></div>
                 <div id="pArtist" style="font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing: 2px;"></div>
             </div>
-            <div id="likeBtn" onclick="toggleLike()" style="cursor:pointer; color: var(--muted);">❤</div>
+            <div id="likeBtn" onclick="toggleLike()" style="cursor:pointer; font-size: 20px; transition: 0.3s;">❤</div>
         </div>
         <input type="range" id="progress" value="0">
         <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--muted);">
@@ -235,35 +201,59 @@
     const audio = new Audio();
     let currentPlaylist = [], currentIndex = -1, likedIds = new Set(), hls = null;
 
-    function toggleAuth() { loginForm.classList.toggle('hidden'); registerForm.classList.toggle('hidden'); }
+    function toggleAuth() { 
+        document.getElementById('loginForm').classList.toggle('hidden'); 
+        document.getElementById('registerForm').classList.toggle('hidden'); 
+    }
     
     async function handleAuth(type) {
         const u = document.getElementById(type==='login'?'lUser':'rUser').value;
         const p = document.getElementById(type==='login'?'lPass':'rPass').value;
-        const res = await fetch(`/api/auth/${type}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
-        const data = await res.json();
-        if(data.success) { if(type==='register') { alert("Account Created"); toggleAuth(); } else checkStatus(); } else alert(data.error);
+        try {
+            const res = await fetch(`/api/auth/${type}`, { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body: JSON.stringify({username:u, password:p}) 
+            });
+            const data = await res.json();
+            if(data.success) { 
+                if(type==='register') { alert("Account Created"); toggleAuth(); } 
+                else checkStatus(); 
+            } else { alert(data.error); }
+        } catch (e) { alert("Connection Error"); }
     }
 
     async function checkStatus() {
-        const res = await fetch('/api/auth/status'); const data = await res.json();
-        if(data.logged_in) { authScreen.classList.add('hidden'); app.classList.remove('hidden'); fetchLibrary(); }
+        const res = await fetch('/api/auth/status'); 
+        const data = await res.json();
+        if(data.logged_in) { 
+            document.getElementById('authScreen').classList.add('hidden'); 
+            document.getElementById('app').classList.remove('hidden'); 
+            fetchLibrary(); 
+        }
     }
 
     async function logout() { await fetch('/api/auth/logout'); location.reload(); }
 
     function switchTab(tab) {
-        exploreTab.classList.toggle('hidden', tab!=='explore'); libraryTab.classList.toggle('hidden', tab!=='library');
-        navExplore.classList.toggle('active', tab==='explore'); navLibrary.classList.toggle('active', tab==='library');
+        document.getElementById('exploreTab').classList.toggle('hidden', tab!=='explore'); 
+        document.getElementById('libraryTab').classList.toggle('hidden', tab!=='library');
+        document.getElementById('navExplore').classList.toggle('active', tab==='explore'); 
+        document.getElementById('navLibrary').classList.toggle('active', tab==='library');
         if(tab==='library') fetchLibrary();
     }
 
     async function doSearch() {
-        const q = searchInput.value; if(!q) return;
-        loading.classList.remove('hidden'); results.innerHTML="";
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-        loading.classList.add('hidden'); currentPlaylist = data; renderTracks(data, 'results');
+        const q = document.getElementById('searchInput').value; if(!q) return;
+        document.getElementById('loading').classList.remove('hidden'); 
+        document.getElementById('results').innerHTML="";
+        try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            document.getElementById('loading').classList.add('hidden'); 
+            currentPlaylist = data; 
+            renderTracks(data, 'results');
+        } catch(e) { document.getElementById('loading').classList.add('hidden'); }
     }
 
     function renderTracks(tracks, divId) {
@@ -277,35 +267,72 @@
 
     async function playSong(index, playlist) {
         currentPlaylist = playlist; currentIndex = index; const song = playlist[index];
-        player.classList.remove('hidden'); pTitle.innerText = song.title; pArtist.innerText = song.artist; pThumb.src = song.thumbnail;
-        const res = await fetch('/api/play', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url: song.id}) });
-        const data = await res.json();
-        if(hls) hls.destroy();
-        if(data.is_hls && Hls.isSupported()) {
-            hls = new Hls(); hls.loadSource(data.stream_url); hls.attachMedia(audio);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => audio.play());
-        } else { audio.src = data.stream_url; audio.play(); }
-        playBtn.innerText = "PAUSE"; updateLikeUI(song.id);
+        const playerEl = document.getElementById('player');
+        playerEl.classList.remove('hidden');
+        document.getElementById('pTitle').innerText = song.title; 
+        document.getElementById('pArtist').innerText = song.artist; 
+        document.getElementById('pThumb').src = song.thumbnail;
+        
+        try {
+            const res = await fetch('/api/play', { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body: JSON.stringify({url: song.id}) 
+            });
+            const data = await res.json();
+            if(hls) hls.destroy();
+            if(data.is_hls && Hls.isSupported()) {
+                hls = new Hls(); hls.loadSource(data.stream_url); hls.attachMedia(audio);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => audio.play());
+            } else { audio.src = data.stream_url; audio.play(); }
+            document.getElementById('playBtn').innerText = "PAUSE"; 
+            updateLikeUI(song.id);
+        } catch(e) { alert("Playback failed"); }
     }
 
-    function togglePlay() { audio.paused ? (audio.play(), playBtn.innerText="PAUSE") : (audio.pause(), playBtn.innerText="PLAY"); }
+    function togglePlay() { 
+        const btn = document.getElementById('playBtn');
+        audio.paused ? (audio.play(), btn.innerText="PAUSE") : (audio.pause(), btn.innerText="PLAY"); 
+    }
+    
     function fmt(s) { return Math.floor(s/60)+":"+Math.floor(s%60).toString().padStart(2,'0'); }
-    audio.ontimeupdate = () => { if(audio.duration) { progress.value = (audio.currentTime/audio.duration)*100; curTime.innerText = fmt(audio.currentTime); durTime.innerText = fmt(audio.duration); } };
-    progress.oninput = () => audio.currentTime = (progress.value/100)*audio.duration;
+    
+    audio.ontimeupdate = () => { 
+        if(audio.duration) { 
+            const prog = document.getElementById('progress');
+            prog.value = (audio.currentTime/audio.duration)*100; 
+            document.getElementById('curTime').innerText = fmt(audio.currentTime); 
+            document.getElementById('durTime').innerText = fmt(audio.duration); 
+        } 
+    };
+    
+    document.getElementById('progress').oninput = (e) => audio.currentTime = (e.target.value/100)*audio.duration;
     
     async function fetchLibrary() {
-        const res = await fetch('/api/library'); const data = await res.json();
-        likedIds = new Set(data.map(s => s.id)); if(!libraryTab.classList.contains('hidden')) renderTracks(data, 'libraryResults');
+        const res = await fetch('/api/library'); 
+        const data = await res.json();
+        likedIds = new Set(data.map(s => s.id)); 
+        if(!document.getElementById('libraryTab').classList.contains('hidden')) renderTracks(data, 'libraryResults');
     }
 
     async function toggleLike() {
         const song = currentPlaylist[currentIndex];
-        const res = await fetch('/api/like', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(song) });
+        const res = await fetch('/api/like', { 
+            method:'POST', 
+            headers:{'Content-Type':'application/json'}, 
+            body: JSON.stringify(song) 
+        });
         const data = await res.json();
         data.status === 'liked' ? likedIds.add(song.id) : likedIds.delete(song.id);
         updateLikeUI(song.id);
     }
-    function updateLikeUI(id) { likeBtn.style.color = likedIds.has(id) ? "#ff4b2b" : "var(--muted)"; }
+
+    function updateLikeUI(id) { 
+        const likeBtn = document.getElementById('likeBtn');
+        likeBtn.style.color = likedIds.has(id) ? "#ff4b2b" : "var(--muted)"; 
+    }
+
+    // Initialize
     checkStatus();
 </script>
 </body>
