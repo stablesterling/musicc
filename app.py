@@ -1,234 +1,109 @@
 import os
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import (
-    LoginManager, UserMixin,
-    login_user, logout_user,
-    login_required, current_user
-)
-from werkzeug.security import generate_password_hash, check_password_hash
-from yt_dlp import YoutubeDL
+from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from passlib.context import CryptContext
+from ytmusicapi import YTMusic
+from pytubefix import YouTube
 
-# ---------------- APP SETUP ----------------
+# Your provided Render PostgreSQL URL
+DATABASE_URL = "postgresql://vofodb_user:Y7MQfAWwEtsiHQLiGHFV7ikOI2ruTv3u@dpg-d5lm4ongi27c7390kq40-a/vofodb"
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+# Use 'postgresql://' instead of 'postgres://' for SQLAlchemy compatibility
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-database_url = os.environ.get("DATABASE_URL")
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-app.config.update(
-    SECRET_KEY=os.environ.get("SECRET_KEY", "vofo_ultra_secret_2026"),
-    SQLALCHEMY_DATABASE_URI=database_url or "sqlite:///vofo.db",
-    SQLALCHEMY_TRACK_MODIFICATIONS=False,
-    SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True if database_url else False
-)
+# Password Security
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-CORS(app, supports_credentials=True)
+# Models
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password = Column(String)
 
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = "index"
+class LikedSong(Base):
+    __tablename__ = "liked_songs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    song_id = Column(String)
+    title = Column(String)
+    artist = Column(String)
+    thumbnail = Column(String)
 
-HEADERS = {
-    "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/122.0.0.0 Safari/537.36"
-}
+# Initialize Database
+Base.metadata.create_all(bind=engine)
 
-# ---------------- DATABASE MODELS ----------------
+app = FastAPI()
+yt = YTMusic()
 
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    likes = db.relationship("LikedTrack", backref="user", lazy=True)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-class LikedTrack(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    track_id = db.Column(db.String(500), nullable=False)
-    title = db.Column(db.String(200))
-    artist = db.Column(db.String(200))
-    thumbnail = db.Column(db.String(500))
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+def get_db():
+    db = SessionLocal()
+    try: yield db
+    finally: db.close()
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-# ---------------- ROUTES ----------------
-
-@app.route("/")
-def index():
-    return send_from_directory(".", "index.html")
-
-# -------- AUTH --------
-
-@app.route("/api/auth/register", methods=["POST"])
-def register():
-    data = request.json
-
-    if User.query.filter_by(username=data["username"]).first():
-        return jsonify({"error": "User already exists"}), 400
-
-    hashed_pw = generate_password_hash(data["password"], method="pbkdf2:sha256")
-    user = User(username=data["username"], password=hashed_pw)
-
-    db.session.add(user)
-    db.session.commit()
-
-    return jsonify({"success": True})
-
-@app.route("/api/auth/login", methods=["POST"])
-def login():
-    data = request.json
-    user = User.query.filter_by(username=data["username"]).first()
-
-    if user and check_password_hash(user.password, data["password"]):
-        login_user(user, remember=True)
-        return jsonify({"success": True, "username": user.username})
-
-    return jsonify({"error": "Invalid credentials"}), 401
-
-@app.route("/api/auth/logout")
-def logout():
-    logout_user()
-    return jsonify({"success": True})
-
-@app.route("/api/auth/status")
-def status():
-    if current_user.is_authenticated:
-        return jsonify({"logged_in": True, "username": current_user.username})
-    return jsonify({"logged_in": False})
-
-# -------- SEARCH --------
-
-@app.route("/api/search")
-@login_required
-def search():
-    query = request.args.get("q")
-    if not query:
-        return jsonify([])
-
+# --- Auth ---
+@app.post("/api/auth/register")
+def register(data: dict, db: Session = Depends(get_db)):
+    hashed_pw = pwd_context.hash(data['password'])
+    user = User(username=data['username'], password=hashed_pw)
     try:
-        ydl_opts = {
-            "quiet": True,
-            "noplaylist": True,
-            "extract_flat": True,
-            "http_headers": HEADERS
-        }
+        db.add(user)
+        db.commit()
+        return {"success": True}
+    except:
+        raise HTTPException(status_code=400, detail="Username already exists")
 
-        with YoutubeDL(ydl_opts) as ydl:
-            data = ydl.extract_info(f"scsearch10:{query}", download=False)
+@app.post("/api/auth/login")
+def login(data: dict, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == data['username']).first()
+    if not user or not pwd_context.verify(data['password'], user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"success": True, "user_id": user.id, "username": user.username}
 
-            results = []
-            for e in data.get("entries", []):
-                if not e:
-                    continue
-                results.append({
-                    "id": e.get("url"),
-                    "title": e.get("title"),
-                    "artist": e.get("uploader") or "SoundCloud Artist",
-                    "thumbnail": e.get("thumbnail")
-                    or "https://placehold.co/50x50?text=No+Cover"
-                })
+# --- Music Engine ---
+@app.get("/api/search")
+def search(q: str):
+    results = yt.search(q, filter="songs")
+    return [{"id": r['videoId'], "title": r['title'], "artist": r['artists'][0]['name'], "thumbnail": r['thumbnails'][-1]['url']} for r in results]
 
-            return jsonify(results)
-
-    except Exception:
-        return jsonify([])
-
-# -------- PLAY (FIXED & STABLE) --------
-
-@app.route("/api/play", methods=["POST"])
-@login_required
-def play():
-    track_url = request.json.get("url")
-
-    if not track_url:
-        return jsonify({"error": "Missing track URL"}), 400
-
+@app.get("/api/stream")
+def get_stream(id: str):
     try:
-        ydl_opts = {
-            # FORCE browser-compatible progressive audio
-            "format": "bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio",
-            "quiet": True,
-            "http_headers": HEADERS,
-            "nocheckcertificate": True,
-            "cachedir": False,
-            "noplaylist": True
-        }
+        yt_v = YouTube(f"https://www.youtube.com/watch?v={id}", use_oauth=True, allow_oauth_cache=True)
+        stream = yt_v.streams.filter(only_audio=True).first()
+        return {"url": stream.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(track_url, download=False)
-
-            stream_url = info.get("url")
-            ext = info.get("ext", "")
-
-            # Reject unsupported formats
-            if not stream_url or ext in ("webm", "opus"):
-                return jsonify({"error": "Unsupported stream"}), 415
-
-            return jsonify({
-                "stream_url": stream_url,
-                "ext": ext
-            })
-
-    except Exception:
-        return jsonify({"error": "Playback unavailable"}), 500
-
-# -------- LIBRARY --------
-
-@app.route("/api/library")
-@login_required
-def library():
-    likes = LikedTrack.query.filter_by(user_id=current_user.id).all()
-    return jsonify([
-        {
-            "id": l.track_id,
-            "title": l.title,
-            "artist": l.artist,
-            "thumbnail": l.thumbnail
-        } for l in likes
-    ])
-
-@app.route("/api/like", methods=["POST"])
-@login_required
-def toggle_like():
-    data = request.json
-
-    existing = LikedTrack.query.filter_by(
-        user_id=current_user.id,
-        track_id=data["id"]
-    ).first()
-
+@app.post("/api/like")
+def toggle_like(data: dict, db: Session = Depends(get_db)):
+    uid = data.get("user_id")
+    existing = db.query(LikedSong).filter(LikedSong.user_id == uid, LikedSong.song_id == data['id']).first()
     if existing:
-        db.session.delete(existing)
-        db.session.commit()
-        return jsonify({"status": "unliked"})
+        db.delete(existing)
+        db.commit()
+        return {"status": "unliked"}
+    new_like = LikedSong(user_id=uid, song_id=data['id'], title=data['title'], artist=data['artist'], thumbnail=data['thumbnail'])
+    db.add(new_like)
+    db.commit()
+    return {"status": "liked"}
 
-    like = LikedTrack(
-        track_id=data["id"],
-        title=data["title"],
-        artist=data["artist"],
-        thumbnail=data["thumbnail"],
-        user_id=current_user.id
-    )
+@app.get("/api/library/{user_id}")
+def get_library(user_id: int, db: Session = Depends(get_db)):
+    likes = db.query(LikedSong).filter(LikedSong.user_id == user_id).all()
+    return [{"id": l.song_id, "title": l.title, "artist": l.artist, "thumbnail": l.thumbnail} for l in likes]
 
-    db.session.add(like)
-    db.session.commit()
-
-    return jsonify({"status": "liked"})
-
-# ---------------- START SERVER ----------------
-
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+@app.get("/", response_class=HTMLResponse)
+def home():
+    with open("index.html", "r") as f: return f.read()
