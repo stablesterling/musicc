@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 ytmusicapi
-pytubefix
+pytubefix>=8.0.0
 sqlalchemy
 psycopg2-binary
 passlib[bcrypt]
