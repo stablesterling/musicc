@@ -1,4 +1,5 @@
 import os
+import bcrypt
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,11 @@ from sqlalchemy.orm import sessionmaker, Session
 from passlib.context import CryptContext
 from ytmusicapi import YTMusic
 from pytubefix import YouTube
+
+# --- CRITICAL FIX FOR PYTHON 3.13 & PASSLIB ---
+# This fixes: AttributeError: module 'bcrypt' has no attribute '__about__'
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
 
 # Your provided Render PostgreSQL URL
 DATABASE_URL = "postgresql://vofodb_user:Y7MQfAWwEtsiHQLiGHFV7ikOI2ruTv3u@dpg-d5lm4ongi27c7390kq40-a/vofodb"
@@ -49,25 +55,32 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 def get_db():
     db = SessionLocal()
-    try: yield db
-    finally: db.close()
+    try: 
+        yield db
+    finally: 
+        db.close()
 
 # --- Auth ---
 @app.post("/api/auth/register")
 def register(data: dict, db: Session = Depends(get_db)):
-    hashed_pw = pwd_context.hash(data['password'])
+    # Truncate to 72 chars to prevent ValueError: password cannot be longer than 72 bytes
+    raw_password = data.get('password', '')[:72]
+    hashed_pw = pwd_context.hash(raw_password)
+    
     user = User(username=data['username'], password=hashed_pw)
     try:
         db.add(user)
         db.commit()
         return {"success": True}
-    except:
-        raise HTTPException(status_code=400, detail="Username already exists")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username already exists or database error")
 
 @app.post("/api/auth/login")
 def login(data: dict, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data['username']).first()
-    if not user or not pwd_context.verify(data['password'], user.password):
+    # Truncate during verification as well
+    if not user or not pwd_context.verify(data['password'][:72], user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return {"success": True, "user_id": user.id, "username": user.username}
 
@@ -106,4 +119,8 @@ def get_library(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    with open("index.html", "r") as f: return f.read()
+    try:
+        with open("index.html", "r") as f: 
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Vofodb Backend Running</h1><p>index.html not found.</p>"
